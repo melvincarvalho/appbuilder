@@ -1,104 +1,15 @@
 <!DOCTYPE html>
-<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
-<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
-<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
-<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
-<!--
-    Copyright (C) 25 Dec 2011 Melvin Carvalho, Nathan Rixham
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
--->
+<html>
 <head>
-    <meta charset="utf-8">
-    <title>App Builder</title>
-
-    <!--[if lt IE 9]>
-        <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-
-    <link rel="stylesheet" href="stylesheets/base.css">
-    <link rel="stylesheet" href="stylesheets/skeleton.css">
-    <link rel="stylesheet" href="stylesheets/layout.css">
-
-    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css">
-
-
-    <link rel="shortcut icon" href="images/favicon.ico">
-    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
-    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
-
-    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
-
-    <style>
-        .hide    { display: none; }
-        .status  { color: rgb(23, 136, 23) ; font-weight:bold; }
-        .alpha   { vertical-align: super; font-size: small; color: grey; }
-    </style>
-
-
-</head>
-<body>
-
+<title>JQuery Simple Vote</title>
 <script src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js"></script>
-
-    <div class="container">
-
-        <div class="sixteen columns">
-            <h1 class="remove-bottom" style="margin-top: 40px">App Builder <span class="alpha">Alpha</span></h1>
-
-            <h5 id="welcome">Loading...</h5>
-        </div>
-        <div class="one-third column">
-            <hr />
-
-          <ul class="tabs">
-            <!-- Give href an ID value of corresponding "tabs-content" <li>'s -->
-            <li><a class="active" href="#simple">Main</a></li>
-
-            <li><a href="#advanced">Advanced</a></li>
-          </ul>
-
-          <ul class="tabs-content">     
-            <li id="simple" class="active">
-              
-              <div id="main">Content Goes Here.</div>
-              <div class="status" id="status"></div>
-
-            <li id="advanced">
-              <div id="main">Advanced Tab</div>              
-            </li>
-          </ul>
-
-        </div>
-        
-        <form id="loginPopup" class="hide" action="https://data.fm/rp_auth">
-            &nbsp;WebID <a href="https://data.fm/login?next=http://appbuilder.data.fm/"><img height="60" width="105" style="float: left" src="http://www.w3.org/wiki/images/0/03/Foaf%2Bssl%24foaf_keylock_small.png" /></a><br/>
-            <br/><br/><a href="javascript:document.app.FBLogin()"><img src="http://www.ikerjimenez.com/imagenes/logo-facebook.gif" /></a><br/>
-            <a href="https://data.fm/login?provider=Gmail&next=http://appbuilder.data.fm/"><img src="https://s3.amazonaws.com/foaf/gmail.png" /></a><br/>
-            <a href="https://data.fm/login?provider=Yahoo&next=http://appbuilder.data.fm/"><img src="https://s3.amazonaws.com/foaf/yahoo.png" /></a><br/>
-        </form>
-
-    </div>
-
-
-<script src="javascripts/tabs.js"></script>
 <script src="javascripts/sha1.js"></script>
 <script src="javascripts/jsonld.js"></script>
 <script src="javascripts/jsonld-turtle.js"></script>
-<script>
+
+<script type="text/javascript">
+
 
 (function($) {
   
@@ -107,6 +18,10 @@
     
     friends: [],
     statuses: [],
+    voted: false,
+    reviews: [],
+    voteName : '1',
+    title : 'Loading',
   
     // Starting point
     load: function() {
@@ -210,17 +125,132 @@
       }
     },
 
+    
     loadRemote: function() {
+      this.status('Loading poll...', true);
+      
+      // get user
+      var user = window.user;
+      if (!user) return;
+      var userSha1 = hex_sha1(user);
+      
+      that = this;
+      
+      var baseDir = 'http://vote.data.fm/';
+      
+
+      $.getJSON(baseDir + this.voteName +'.ttl.json' , function(data){
+        for(var prop in data) {
+          if(data.hasOwnProperty(prop)) {
+            var reviewer = undefined;
+            if ( data[prop]['http://purl.org/stuff/rev#title'] && data[prop]['http://purl.org/stuff/rev#title'][0] )
+              var title  = data[prop]['http://purl.org/stuff/rev#title'][0]['value'];
+            if ( data[prop]['http://plugin.org.uk/rdf/vote#for'] && data[prop]['http://plugin.org.uk/rdf/vote#for'][0] )
+              var option = data[prop]['http://plugin.org.uk/rdf/vote#for'][0]['value'];
+            if ( data[prop]['http://purl.org/stuff/rev#reviewer'] && data[prop]['http://purl.org/stuff/rev#reviewer'][0] )
+              reviewer = data[prop]['http://purl.org/stuff/rev#reviewer'][0]['value'];
+            if ( title && title != this.title ) this.title = title;
+            document.app.addReview(option, reviewer, title);
+          }
+        }
+        that.status('Loading poll...', false);
+        that.render();
+      }).error(function(data){
+        that.addFriend('testdummy@opentabs.net', 'Test Dummy');
+        that.status('Loading poll...', false);
+        that.render();
+      });
     },
     
+    saveRemote: function() {
+      that = this;
+      that.status('Loading poll...', true);
+      
+
+      var baseDir = 'http://vote.data.fm/';
+      // DELETE
+      this.deleteFile(baseDir + '1.ttl');      
+
+      // PUT
+      var body = jsonld.turtle(this.reviews);
+      //alert(JSON.stringify(body));
+      this.putFile(baseDir + '1.ttl', body);      
+
+      
+      that.status('Loading poll...', false);
+    },
     
+    createReview: function(option, reviewer, title) {
+       title = title || this.title;
+       
+       var review = {
+                     "@id": "",
+                     "http://purl.org/stuff/rev#title": title,
+                     "http://plugin.org.uk/rdf/vote#for" : option,
+                     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": {
+                         "@id": "http://purl.org/stuff/rev#Review"
+                      }
+                    };
+             
+                   
+      review['@id'] = '#' + hex_sha1(JSON.stringify(review));             
+
+      if (reviewer) {
+        review ["http://purl.org/stuff/rev#reviewer"] = { "@id": this.makeURI(reviewer) };
+      }
+
+      return review;
     
+    },    
     
 
     // render
     render: function() {
       that = this;
-      //$('#main').empty();
+      
+      
+      var title = this.title;
+      var options = {};
+      for (i=0; i<this.reviews.length; i++) {
+        title = this.reviews[i]["http://purl.org/stuff/rev#title"];
+        
+        var reviewer= this.reviews[i]["http://purl.org/stuff/rev#reviewer"];
+        var option = this.reviews[i]["http://plugin.org.uk/rdf/vote#for"];
+
+        if ( reviewer == window.user ) {        
+          document.app.voted = true;
+          $('#thanks').html('Thank you for voting');
+        }
+        
+        if (!options[option]) {
+          options[option] = [];
+        } 
+        
+        if (reviewer) {
+          options[option].push(reviewer);
+        }
+        
+        
+        
+      }
+      
+      $('#question').html(title);   
+      that.title = title;
+      
+      //alert(line);
+      $('#choices').empty();
+      
+      
+      for(var prop in options) {
+        if(options.hasOwnProperty(prop)) {
+          var line = '<div title="'+ encodeURI(JSON.stringify(options[prop])) +'"><span>'+ options[prop].length +'</span><a href="">Vote</a>'+ prop +'</div>';
+          $('#choices').append( line );
+          $('div:contains("'+prop+'")').last().animate({ width : "+="+ (100*options[prop].length) +"" })
+        }
+      }
+        
+      
+      this.handleVotes();
             
     },
     
@@ -233,6 +263,11 @@
       
       this.friends.push({ "@id" : uri, "http://xmlns.com/foaf/0.1/name" : name });
       window.localStorage.friends = JSON.stringify(this.friends);
+    },
+    
+    addReview: function(option, reviewer, title) {
+      this.reviews.push(this.createReview(option, reviewer, title));
+
     },
     
     deleteFile: function(file) {
@@ -290,13 +325,39 @@
     
     loginPopup: function(id) {
       $('#loginPopup').dialog();
-    }
+    },
     
+
+    handleVotes: function() {
+      that = this;
+      
+      $("#container div a").click(function() {
+          if (document.app.voted) return false;
+          $(this).parent().animate({
+             width: '+=100px'
+          }, 500);
+
+          $(this).prev().html(parseInt($(this).prev().html()) + 1);
+          document.app.voted = true;
+          $('#thanks').html('Thank you for voting');
+          var option = $(this).parent().text();
+          var needle = option.indexOf('Vote');
+          option = option.substring(needle+4);
+          //alert(title);
+          document.app.reviews.push(document.app.createReview(option, window.user, that.title));
+          // save poll
+          that.saveRemote();
+          return false;
+      });
+    }
   };
   
   // Init
   $(document).ready(function() {
+
     document.app = new app; 
+    document.app.handleVotes();
+    
   });
   
 })(jQuery);
@@ -304,6 +365,105 @@
 
 
 </script>
+<style type="text/css">
+    * {
+        font-family: Arial, "Free Sans";
+    }
+    #container {
+        margin-top: 20px;
+        color: #fff;
+    }
+    #container #question #choices {
+        display: block;
+        padding: 20px;
+        font-weight: bold;
+        letter-spacing: -3px;
+        margin-bottom: 20px;
+        padding: 10px;
+        font-size: 40px;
+    }
+    #container div {
+        font-weight: bold;
+        letter-spacing: -3px;
+        background: #0099cc;
+        margin-bottom: 15px;
+        padding: 10px;
+        font-size: 34px;
+        color: #ffffff;
+        border-left: 20px solid #333;
+        width: 600px;
+        -webkit-border-radius: 0.5em;
+        -moz-border-radius: 0 0.5em 0.5em 0;
+        border-radius: 0 1.5em 1.5em 0;
+    }
+    #container div a {
+        border-radius: 0.3em;
+        text-decoration: none;
+        color: #0099cc;
+        padding: 5px 15px;
+        background: #333;
+        margin: 0 20px;
+    }
+    #container div a:hover {
+        color: #fff;
+    }
+    #main {
+        background: #0099cc;
+        margin-top: 0;
+        padding: 2px 0 4px 0;
+        text-align: center;
+    }
+    #main a {
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: bold;
+        font-family: Arial;
+    }
+    #main a:hover {
+        text-decoration: underline;
+    }
+    body {
+        margin: 0;
+        padding: 0;
+        background: black;
+    }
+    #text {
+        margin: 0 auto;
+        width: 500px;
+        font-size: 12px;
+        color: #0099cc;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 20px;
+    }
+    .hide {
+        display:none;
+    }
+
+</style>
+</head>
+<body>
+    <div id="main">
+
+<span id="welcome"><a href="javascript:document.app.loginPopup()"><img src="https://browserid.org/i/sign_in_blue.png"/></a></span></span><span id="status"></span>
+
+  </div>
+  <div id="container">
+      <h2 id="question">Loading...</h2>
+      <span id="choices">
+          <div><span>0</span><a href="">Vote</a>Loading...</div>
+      </span>
+      <h2 id="thanks"></h2>
+  </div>
+
+  <form id="loginPopup" class="hide" action="https://data.fm/rp_auth">
+    &nbsp;WebID <a href="https://data.fm/login?next=http://appbuilder.data.fm/"><img height="60" width="105" style="float: left" src="http://www.w3.org/wiki/images/0/03/Foaf%2Bssl%24foaf_keylock_small.png" /></a><br/>
+    <br/><br/><a href="javascript:document.app.FBLogin()"><img src="http://www.ikerjimenez.com/imagenes/logo-facebook.gif" /></a><br/>
+    <a href="https://data.fm/login?provider=Gmail&next=http://appbuilder.data.fm/"><img src="https://s3.amazonaws.com/foaf/gmail.png" /></a><br/>
+    <a href="https://data.fm/login?provider=Yahoo&next=http://appbuilder.data.fm/"><img src="https://s3.amazonaws.com/foaf/yahoo.png" /></a><br/>
+  </form>
+
 
 </body>
 </html>
