@@ -250,6 +250,13 @@
       xhr.send(data);   
     },
     
+    postFile: function(file, data) {
+      xhr = new XMLHttpRequest();
+      xhr.open('POST', file, false);
+      xhr.setRequestHeader('Content-Type', 'text/turtle; charset=UTF-8');
+      xhr.send(data);   
+    },
+    
     createDirectory: function(dir) {
       var xhr = new XMLHttpRequest();
       xhr.open('MKCOL', dir, false);
