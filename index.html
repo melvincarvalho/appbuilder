@@ -183,18 +183,6 @@
       this.render();
     },
 
-    // called from add button
-    addRecipient: function() {
-      var uri  = this.makeURI($('#uri').val());
-      var name = $('#name').val();
-      
-      this.addFriend( uri , name );
-      this.saveRemote();
-      
-      alert( name + ' added!' );
-      this.render();
-    },
-
     // called from fb button
     FBLogin: function() {
       var appID = "119467988130777";
@@ -289,10 +277,6 @@
       } else {
         return 'mailto:' + id;
       }
-    },
-    
-    addR: function(id) {
-      $('#addRecipient').dialog();
     },
     
     loginPopup: function(id) {
