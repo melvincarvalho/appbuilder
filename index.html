@@ -85,11 +85,11 @@
         </div>
         
         <form id="loginPopup" class="hide" action="https://data.fm/rp_auth">
-          &nbsp;WebID <a href="https://data.fm/login?next=http://calendar.data.fm/"><img height="60" width="105" style="float: left" src="http://www.w3.org/wiki/images/0/03/Foaf%2Bssl%24foaf_keylock_small.png" /></a>
+          &nbsp;BrowserID <a href="javascript:document.app.loginBrowserID()"><img width="158" height="44" style="float: left" src="https://browserid.org/i/sign_in_blue.png" /></a><br/>
           <br/><br/><a href="javascript:document.app.loginFB()"><img src="http://www.ikerjimenez.com/imagenes/logo-facebook.gif" /></a><br/>
           <a href="https://data.fm/login?provider=Gmail&next=http://calendar.data.fm/"><img src="https://s3.amazonaws.com/foaf/gmail.png" /></a><br/>
           <a href="https://data.fm/login?provider=Yahoo&next=http://calendar.data.fm/"><img src="https://s3.amazonaws.com/foaf/yahoo.png" /></a><br/>
-          &nbsp;BrowserID <a href="javascript:document.app.loginBrowserID()"><img width="237" height="66" style="float: left" src="https://browserid.org/i/sign_in_blue.png" /></a><br/>
+          &nbsp;WebID <a href="https://data.fm/login?next=http://calendar.data.fm/"><img height="60" width="105" style="float: left" src="http://www.w3.org/wiki/images/0/03/Foaf%2Bssl%24foaf_keylock_small.png" /></a>
         </form>
 
     </div>
@@ -107,22 +107,27 @@
   var app = function() { this.load() };
   app.prototype = {
     
+    appURI: 'https://github.com/melvincarvalho/appbuilder', // DOAP
+    webIDAuthURI : 'https://data.fm/user.js',
+    loginType : 'loginMulti', 
+    //loginType : 'loginBrowserID', 
     friends: [],
     statuses: [],
+    user: null,
   
     // INIT
     load: function() {
-      this.status('Loading user...', true);
       this.loadUser();
       this.render();
     },
     
     // AUTHENTICATION
     loadUser: function() {
+      this.status('Loading user...', true);
       // Non Facebook
       if (window.location.hash.length == 0) {
         var script = document.createElement('script');
-        script.src = 'https://data.fm/user.js?callback=document.app.displayUser';
+        script.src = this.getWebIDAuthURI() + '?callback=document.app.displayUser';
         document.body.appendChild(script);   
       // Facebook     
       } else {
@@ -138,29 +143,88 @@
       }
     },
     
-    // callback to loadFriends, calls loadRemote
+    // Multi login modal popup
+    loginMulti: function(id) {
+      $('#loginPopup').dialog({"title": "Sign in"});
+    },
+    
+    // Called from fb button
+    loginFB: function() {
+      var appID = "119467988130777";
+      if (window.location.hash.length == 0) {
+        var path = 'https://www.facebook.com/dialog/oauth?';
+        var queryParams = ['client_id=' + appID,
+          'redirect_uri=' + window.location,
+          'response_type=token'];
+        var query = queryParams.join('&');
+        var url = path + query;
+        window.location = url;
+      } else {
+      }
+    },
+    
+    // Called from BrowserID button
+    loginBrowserID: function() {
+      navigator.id.get(function(assertion) {
+        if (assertion) {
+    
+          var arr = assertion.split('.');
+          var f = JSON.parse(window.atob(arr[1]));
+          var user = f['principal']['email'];
+          document.getElementById('welcome').innerHTML = user;
+          document.app.user = 'mailto:' +  user;
+          $('#loginPopup').dialog('close');
+          document.app.loadRemote();
+
+          
+          // This code will be invoked once the user has successfully
+          // selected an email address they control to sign in with.
+        } else {
+          // something went wrong!  the user isn't logged in.
+        }
+      });      
+    },
+    
+    // Displays users, callback to loadFriends, loadRemote
     displayUser: function(user) {
       this.status('Loading user...', false);
       var userName = document.getElementById('welcome');
       if ( user.name ) {
         var greetingText = document.createTextNode('Greetings, ' + user.name + '.');
-        window.user = 'https://graph.facebook.com/' + user.id;
+        document.app.user = 'https://graph.facebook.com/' + user.id;
         userName.innerHTML = 'Greetings, ' + user.name;
         this.loadFBFriends();
       } else {
-        window.user = user; 
+        document.app.user = user; 
         var userName = document.getElementById('welcome');
         if (user.substring(0,4) == 'dns:' ) {
-          userName.innerHTML = 'IP: ' + window.user + '&nbsp;' + '<a href="javascript:document.app.loginPopup()"><img src="https://browserid.org/i/sign_in_blue.png"/'+'></a>' ;
+          var signin = 'javascript:document.app.' + this.loginType + '()';
+          userName.innerHTML = 'IP: ' + document.app.user + '&nbsp;' + '<a href="'+signin+'"><img src="https://browserid.org/i/sign_in_blue.png"/'+'></a>' ;
         } else {
-          userName.innerHTML = 'User: ' + window.user;
+          userName.innerHTML = 'User: ' + document.app.user;
         }
       }
       this.loadRemote();
     },
     
+    // DISCOVERY
+    getWebIDAuthURI: function() {
+      // Try localStorage first
+      if ( window.localStorage.webIDAuthURI ) return  window.localStorage.webIDAuthURI;
+      
+      // TODO: Search loacal path for user prefs
+
+      // TODO: Discovery via HTTP user URI, Webfinger
+      
+      // TODO: Discover vid HTTP / DOAP
+
+      // Fallback to default location
+      return this.webIDAuthURI;
+    },
+    
+    
     // FRIENDS
-    // callback to displayFriends
+    // Loads friends, callback to displayFriends
     loadFBFriends: function() {
       this.status('Loading friends...', true);
       var accessToken = window.location.hash.substring(1);
@@ -174,28 +238,8 @@
       script.src = url;
       document.body.appendChild(script);        
     },    
-
-    loginBrowserID: function() {
-      navigator.id.get(function(assertion) {
-        if (assertion) {
     
-          var arr = assertion.split('.');
-          var f = JSON.parse(window.atob(arr[1]));
-          var user = f['principal']['email'];
-          document.getElementById('welcome').innerHTML = user;
-          window.user = 'mailto:' +  user;
-          $('#loginPopup').dialog('close');
-          document.app.loadRemote();
-
-          
-          // This code will be invoked once the user has successfully
-          // selected an email address they control to sign in with.
-        } else {
-          // something went wrong!  the user isn't logged in.
-        }
-      });      
-    },
-    
+    // Displays friends
     displayFriends: function(data) {
       this.status('Loading friends...', false);
       var str;
@@ -205,21 +249,6 @@
         this.addFriend( uri, name );
       }
       this.render();
-    },
-
-    // called from fb button
-    loginFB: function() {
-      var appID = "119467988130777";
-      if (window.location.hash.length == 0) {
-        var path = 'https://www.facebook.com/dialog/oauth?';
-        var queryParams = ['client_id=' + appID,
-          'redirect_uri=' + window.location,
-          'response_type=token'];
-        var query = queryParams.join('&');
-        var url = path + query;
-        window.location = url;
-      } else {
-      }
     },
 
 
@@ -305,15 +334,11 @@
       } else {
         return 'mailto:' + id;
       }
-    },
-    
-    loginPopup: function(id) {
-      $('#loginPopup').dialog();
     }
     
   };
   
-  // INIT
+  // ONLOAD
   $(document).ready(function() {
     document.app = new app; 
   });
