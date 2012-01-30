@@ -85,11 +85,11 @@
         </div>
         
         <form id="loginPopup" class="hide" action="https://data.fm/rp_auth">
-          &nbsp;BrowserID <a href="javascript:document.app.loginBrowserID()"><img width="158" height="44" style="float: left" src="https://browserid.org/i/sign_in_blue.png" /></a><br/>
-          <br/><br/><a href="javascript:document.app.loginFB()"><img src="http://www.ikerjimenez.com/imagenes/logo-facebook.gif" /></a><br/>
-          <a href="https://data.fm/login?provider=Gmail&next=http://appbuilder.data.fm/"><img src="https://s3.amazonaws.com/foaf/gmail.png" /></a><br/>
-          <a href="https://data.fm/login?provider=Yahoo&next=http://appbuilder.data.fm/"><img src="https://s3.amazonaws.com/foaf/yahoo.png" /></a><br/>
-          &nbsp;WebID <a href="https://data.fm/login?next=http://appbuilder.data.fm/"><img height="60" width="105" style="float: left" src="http://www.w3.org/wiki/images/0/03/Foaf%2Bssl%24foaf_keylock_small.png" /></a>
+          &nbsp;BrowserID <a id="loginBrowserID" href="#"><img width="158" height="44" style="float: left" src="https://browserid.org/i/sign_in_blue.png" /></a><br/>
+          <br/><br/><a id="loginFacebook" href="#"><img src="http://www.ikerjimenez.com/imagenes/logo-facebook.gif" /></a><br/>
+          <a id="loginGmail" href="#"><img src="https://s3.amazonaws.com/foaf/gmail.png" /></a><br/>
+          <a id="loginYahoo" href="#"><img src="https://s3.amazonaws.com/foaf/yahoo.png" /></a><br/>
+          &nbsp;WebID <a id="loginWebID" href="#"><img height="60" width="105" style="float: left" src="http://www.w3.org/wiki/images/0/03/Foaf%2Bssl%24foaf_keylock_small.png" /></a>
         </form>
 
     </div>
@@ -114,14 +114,32 @@
     friends: [],
     statuses: [],
     user: null,
+
+    // Facebook ID -- change or add more
+    facebookAppID : '119467988130777',
+    facebookAppURL : 'data.fm',
+
   
     // INIT
     load: function() {
+      this.initLogin();
       this.loadUser();
       this.render();
     },
     
     // AUTHENTICATION
+    initLogin: function() {
+      $('#loginBrowserID').click(function () {document.app.loginBrowserID();});
+      $('#loginGmail').attr('href', 'https://data.fm/login?provider=Gmail&next=' + document.URL );
+      $('#loginYahoo').attr('href', 'https://data.fm/login?provider=Yahoo&next=' + document.URL );
+      $('#loginWebID').attr('href', 'https://data.fm/login?next=' + document.URL );
+      if (document.URL.indexOf(this.facebookAppURL) != -1) {
+        $('#loginFacebook').click(function () {document.app.loginFacebook();});
+      } else {
+        $('#loginFacebook').hide();
+      }
+    },
+    
     loadUser: function() {
       this.status('Loading user...', true);
       // Non Facebook
@@ -149,8 +167,8 @@
     },
     
     // Called from fb button
-    loginFB: function() {
-      var appID = "119467988130777";
+    loginFacebook: function() {
+      var appID = this.facebookAppID;
       if (window.location.hash.length == 0) {
         var path = 'https://www.facebook.com/dialog/oauth?';
         var queryParams = ['client_id=' + appID,
