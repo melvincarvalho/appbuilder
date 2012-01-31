@@ -189,7 +189,7 @@
           var arr = assertion.split('.');
           var f = JSON.parse(window.atob(arr[1]));
           var user = f['principal']['email'];
-          document.getElementById('welcome').innerHTML = user;
+          document.getElementById('welcome').innerHTML = user + '<a href="javascript:document.app.logout()"><img height="24" width="24" src="images/logout.png"/'+'></a>';
           document.app.user = 'mailto:' +  user;
           $('#loginPopup').dialog('close');
           document.app.loadRemote();
@@ -219,10 +219,18 @@
           var signin = 'javascript:document.app.' + this.loginType + '()';
           userName.innerHTML = 'IP: ' + document.app.user + '&nbsp;' + '<a href="'+signin+'"><img src="https://browserid.org/i/sign_in_blue.png"/'+'></a>' ;
         } else {
-          userName.innerHTML = 'User: ' + document.app.user;
+          userName.innerHTML = 'User: ' + document.app.user + '<a href="javascript:document.app.logout()"><img height="24" width="24" src="images/logout.png"/'+'></a>';
         }
       }
       this.loadRemote();
+    },
+    
+    logout: function() {
+      this.user = null;
+      var signin = 'javascript:document.app.' + this.loginType + '()';
+      var userName = document.getElementById('welcome');
+      userName.innerHTML = 'Sign In: &nbsp;' + '<a href="'+signin+'"><img src="https://browserid.org/i/sign_in_blue.png"/'+'></a>' ;
+      this.render();
     },
     
     // DISCOVERY
